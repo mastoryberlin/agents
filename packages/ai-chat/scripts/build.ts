@@ -8,6 +8,7 @@ async function main() {
     entry: [
       "src/index.ts",
       "src/react.tsx",
+      "src/vue.ts",
       "src/types.ts",
       "src/ai-chat-v5-migration.ts",
       "src/experimental/forever.ts"
