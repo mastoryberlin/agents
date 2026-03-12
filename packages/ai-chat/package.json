@@ -28,7 +28,7 @@
   },
   "peerDependencies": {
     "@ai-sdk/react": "^3.0.0",
-    "@ai-sdk/vue": "^3.0.0",
+    "@ai-sdk/vue": "^3.0.126",
     "agents": ">=0.3.10 <1.0.0",
     "ai": "^6.0.0",
     "vue": "^3.5",

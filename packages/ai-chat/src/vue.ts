@@ -422,9 +422,27 @@ export function useAgentChat<
   });
 
   // Expose reactive properties from Chat instance
-  const chatMessages = computed(() => chatInstance.messages);
-  const status = computed(() => chatInstance.status);
-  const error = computed(() => chatInstance.error);
+  const chatMessages = computed(() => {
+    console.log(
+      "chatMessages computed getter called - current value:",
+      chatInstance.messages
+    );
+    return chatInstance.messages;
+  });
+  const status = computed(() => {
+    console.log(
+      "status computed getter called - current value:",
+      chatInstance.status
+    );
+    return chatInstance.status;
+  });
+  const error = computed(() => {
+    console.log(
+      "error computed getter called - current value:",
+      chatInstance.error
+    );
+    return chatInstance.error;
+  });
 
   // Wrap Chat methods
   const sendMessage = async (text?: string) => {
