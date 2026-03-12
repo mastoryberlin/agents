@@ -1,0 +1,5 @@
+import {
+  n as getNamespacedData,
+  t as MCPClientManager
+} from "../client-K8Z-u76l.js";
+export { MCPClientManager, getNamespacedData };

@@ -1,0 +1,31 @@
+import { t as MessageType$2 } from "./types-BNDOPFtH.js";
+import {
+  IncomingMessage,
+  MessageType as MessageType$1,
+  OutgoingMessage
+} from "@cloudflare/ai-chat/types";
+
+//#region src/ai-types.d.ts
+declare const MessageType: {
+  CF_AGENT_MCP_SERVERS: MessageType$2.CF_AGENT_MCP_SERVERS;
+  CF_MCP_AGENT_EVENT: MessageType$2.CF_MCP_AGENT_EVENT;
+  CF_AGENT_STATE: MessageType$2.CF_AGENT_STATE;
+  CF_AGENT_STATE_ERROR: MessageType$2.CF_AGENT_STATE_ERROR;
+  CF_AGENT_IDENTITY: MessageType$2.CF_AGENT_IDENTITY;
+  RPC: MessageType$2.RPC;
+  CF_AGENT_CHAT_MESSAGES: MessageType$1.CF_AGENT_CHAT_MESSAGES;
+  CF_AGENT_USE_CHAT_REQUEST: MessageType$1.CF_AGENT_USE_CHAT_REQUEST;
+  CF_AGENT_USE_CHAT_RESPONSE: MessageType$1.CF_AGENT_USE_CHAT_RESPONSE;
+  CF_AGENT_CHAT_CLEAR: MessageType$1.CF_AGENT_CHAT_CLEAR;
+  CF_AGENT_CHAT_REQUEST_CANCEL: MessageType$1.CF_AGENT_CHAT_REQUEST_CANCEL;
+  CF_AGENT_STREAM_RESUMING: MessageType$1.CF_AGENT_STREAM_RESUMING;
+  CF_AGENT_STREAM_RESUME_ACK: MessageType$1.CF_AGENT_STREAM_RESUME_ACK;
+  CF_AGENT_STREAM_RESUME_REQUEST: MessageType$1.CF_AGENT_STREAM_RESUME_REQUEST;
+  CF_AGENT_STREAM_RESUME_NONE: MessageType$1.CF_AGENT_STREAM_RESUME_NONE;
+  CF_AGENT_TOOL_RESULT: MessageType$1.CF_AGENT_TOOL_RESULT;
+  CF_AGENT_MESSAGE_UPDATED: MessageType$1.CF_AGENT_MESSAGE_UPDATED;
+  CF_AGENT_TOOL_APPROVAL: MessageType$1.CF_AGENT_TOOL_APPROVAL;
+};
+//#endregion
+export { type IncomingMessage, MessageType, type OutgoingMessage };
+//# sourceMappingURL=ai-types.d.ts.map
