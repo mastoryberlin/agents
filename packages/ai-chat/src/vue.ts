@@ -212,13 +212,18 @@ const requestCache = new Map<string, Promise<Message[]>>();
 export function useAgentChat<
   State = unknown,
   ChatMessage extends UIMessage = UIMessage
->(options: UseAgentChatOptions<State, ChatMessage>) {
+>(
+  options: UseAgentChatOptions<State, ChatMessage> & {
+    onChunk?: (chunk: any) => void;
+  }
+) {
   const {
     agent,
     getInitialMessages,
     messages: optionsInitialMessages,
     onToolCall,
     onData,
+    onChunk,
     experimental_automaticToolResolution,
     tools,
     toolsRequiringConfirmation: manualToolsRequiringConfirmation,
@@ -358,7 +363,11 @@ export function useAgentChat<
       initialMessages.value = messages;
       // Update Chat instance with initial messages
       if (chatInstance) {
-        chatInstance.messages = messages;
+        chatInstance.messages.splice(
+          0,
+          chatInstance.messages.length,
+          ...messages
+        );
       }
     });
   }
@@ -423,32 +432,27 @@ export function useAgentChat<
   });
 
   // Expose reactive properties from Chat instance
+  const refresher = ref(false);
+  function refresh() {
+    refresher.value = !refresher.value;
+  }
   const chatMessages = computed(() => {
-    console.log(
-      "chatMessages computed getter called - current value:",
-      chatInstance.messages
-    );
-    return chatInstance.messages;
+    console.log("chatMessages getter");
+    return refresher.value ? chatInstance.messages : chatInstance.messages;
   });
-  const status = computed(() => {
-    console.log(
-      "status computed getter called - current value:",
-      chatInstance.status
-    );
-    return chatInstance.status;
-  });
-  const error = computed(() => {
-    console.log(
-      "error computed getter called - current value:",
-      chatInstance.error
-    );
-    return chatInstance.error;
-  });
+  const status = computed(() =>
+    refresher.value ? chatInstance.status : chatInstance.status
+  );
+  const error = computed(() =>
+    refresher.value ? chatInstance.error : chatInstance.error
+  );
 
   // Wrap Chat methods
   const sendMessage = async (text?: string) => {
     if (text !== undefined) {
-      return await chatInstance.sendMessage({ text });
+      const r = await chatInstance.sendMessage({ text });
+      refresh();
+      return r;
     }
     return await chatInstance.sendMessage();
   };
@@ -456,11 +460,15 @@ export function useAgentChat<
   const setMessages = (
     messages: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])
   ) => {
-    if (typeof messages === "function") {
-      chatInstance.messages = messages(chatInstance.messages);
-    } else {
-      chatInstance.messages = messages;
-    }
+    console.log("setMessages was called");
+    chatInstance.messages.splice(
+      0,
+      chatInstance.messages.length,
+      ...(typeof messages === "function"
+        ? messages(chatInstance.messages)
+        : messages)
+    );
+    refresh();
   };
 
   const addToolResult = async (args: any) => {
@@ -547,6 +555,10 @@ export function useAgentChat<
     parts: ChatMessage["parts"];
     metadata?: Record<string, unknown>;
   }) => {
+    console.log(
+      "now calling flushActiveStreamToMessages for activeMsg",
+      activeMsg.id
+    );
     setMessages((prevMessages: ChatMessage[]) => {
       const existingIdx = prevMessages.findIndex(
         (m) => m.id === activeMsg.messageId
@@ -733,14 +745,29 @@ export function useAgentChat<
 
   // Message event listener
   const onAgentMessage = (event: MessageEvent) => {
-    if (typeof event.data !== "string") return;
+    if (typeof event.data !== "string") {
+      console.warn(
+        "entering onAgentMessage - but immediately leaving it bc of unexpected event.data",
+        event.data
+      );
+      return;
+    }
 
     let data: OutgoingMessage<ChatMessage>;
     try {
       data = JSON.parse(event.data) as OutgoingMessage<ChatMessage>;
     } catch (_error) {
+      console.warn(
+        "leaving onAgentMessage due to JSON parsing error about event.data"
+      );
       return;
     }
+    console.log(
+      "entering onAgentMessage - event.data.type:",
+      data.type,
+      "- full event.data:",
+      data
+    );
 
     switch (data.type) {
       case MessageType.CF_AGENT_CHAT_CLEAR:
@@ -820,16 +847,26 @@ export function useAgentChat<
         break;
 
       case MessageType.CF_AGENT_USE_CHAT_RESPONSE:
-        if (localRequestIds.value.has(data.id)) return;
+        console.log("CF_AGENT_USE_CHAT_RESPONSE case");
+        // if (localRequestIds.value.has(data.id)) {
+        //   console.log('CF_AGENT_USE_CHAT_RESPONSE: returning bc localRequestIds.value.has(data.id)')
+        //   return
+        // };
 
         const isContinuation = data.continuation === true;
 
         if (!activeStream.value || activeStream.value.id !== data.id) {
+          console.log(
+            "CF_AGENT_USE_CHAT_RESPONSE: entering if (!activeStream.value ... block"
+          );
           let messageId = nanoid();
           let existingParts: ChatMessage["parts"] = [];
           let existingMetadata: Record<string, unknown> | undefined;
 
           if (isContinuation) {
+            console.log(
+              "CF_AGENT_USE_CHAT_RESPONSE: entering if (isContinuation) block"
+            );
             const currentMessages = chatMessages.value;
             for (let i = currentMessages.length - 1; i >= 0; i--) {
               if (currentMessages[i].role === "assistant") {
@@ -855,8 +892,17 @@ export function useAgentChat<
 
         const activeMsg = activeStream.value;
         const isReplay = data.replay === true;
+        console.log(
+          "CF_AGENT_USE_CHAT_RESPONSE: activeMsg is now",
+          activeMsg,
+          ", isReplay=",
+          isReplay
+        );
 
         if (data.body?.trim()) {
+          console.log(
+            "CF_AGENT_USE_CHAT_RESPONSE: entering if (data.body?.trim()) block"
+          );
           try {
             const chunkData = JSON.parse(data.body);
 
@@ -872,6 +918,9 @@ export function useAgentChat<
             ) {
               onData(chunkData);
             }
+            if (onChunk) {
+              onChunk(chunkData);
+            }
 
             if (
               !handled &&
@@ -879,6 +928,9 @@ export function useAgentChat<
                 chunkData.type === "finish" ||
                 chunkData.type === "message-metadata")
             ) {
+              console.log(
+                "CF_AGENT_USE_CHAT_RESPONSE: entering if (!handled ... block"
+              );
               if (chunkData.messageId != null && chunkData.type === "start") {
                 activeMsg.messageId = chunkData.messageId;
               }
@@ -890,7 +942,16 @@ export function useAgentChat<
             }
 
             if (!isReplay) {
+              console.log(
+                "CF_AGENT_USE_CHAT_RESPONSE: calling flushActiveStreamToMessages w/activeMsg=",
+                activeMsg
+              );
               flushActiveStreamToMessages(activeMsg);
+            } else {
+              console.log(
+                "CF_AGENT_USE_CHAT_RESPONSE: not calling flushActiveStreamToMessages bc isReplay is",
+                isReplay
+              );
             }
           } catch (parseError) {
             console.warn(
@@ -916,9 +977,11 @@ export function useAgentChat<
 
   // Set up event listener
   watchEffect((onCleanup) => {
+    console.log('adding event listener for "message"');
     agent.addEventListener("message", onAgentMessage);
 
     onCleanup(() => {
+      console.log('removing event listener for "message"');
       agent.removeEventListener("message", onAgentMessage);
       activeStream.value = null;
     });

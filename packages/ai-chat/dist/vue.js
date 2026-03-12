@@ -45,6 +45,7 @@ function useAgentChat(options) {
     messages: optionsInitialMessages,
     onToolCall,
     onData,
+    onChunk,
     experimental_automaticToolResolution,
     tools,
     toolsRequiringConfirmation: manualToolsRequiringConfirmation,
@@ -55,6 +56,7 @@ function useAgentChat(options) {
     prepareSendMessagesRequest,
     ...rest
   } = options;
+  console.log("YES, this is the Vue composable!");
   if (manualToolsRequiringConfirmation)
     warnDeprecated(
       "useAgentChat.toolsRequiringConfirmation",
@@ -140,7 +142,12 @@ function useAgentChat(options) {
   if (initialMessagesPromise.value)
     initialMessagesPromise.value.then((messages) => {
       initialMessages.value = messages;
-      if (chatInstance) chatInstance.messages = messages;
+      if (chatInstance)
+        chatInstance.messages.splice(
+          0,
+          chatInstance.messages.length,
+          ...messages
+        );
     });
   let customTransport = null;
   if (!customTransport)
@@ -182,17 +189,38 @@ function useAgentChat(options) {
     id: initialMessagesCacheKey.value,
     resume
   });
-  const chatMessages = computed(() => chatInstance.messages);
-  const status = computed(() => chatInstance.status);
-  const error = computed(() => chatInstance.error);
+  const refresher = ref(false);
+  function refresh() {
+    refresher.value = !refresher.value;
+  }
+  const chatMessages = computed(() => {
+    console.log("chatMessages getter");
+    return refresher.value ? chatInstance.messages : chatInstance.messages;
+  });
+  const status = computed(() =>
+    refresher.value ? chatInstance.status : chatInstance.status
+  );
+  const error = computed(() =>
+    refresher.value ? chatInstance.error : chatInstance.error
+  );
   const sendMessage = async (text) => {
-    if (text !== void 0) return await chatInstance.sendMessage({ text });
+    if (text !== void 0) {
+      const r = await chatInstance.sendMessage({ text });
+      refresh();
+      return r;
+    }
     return await chatInstance.sendMessage();
   };
   const setMessages = (messages) => {
-    if (typeof messages === "function")
-      chatInstance.messages = messages(chatInstance.messages);
-    else chatInstance.messages = messages;
+    console.log("setMessages was called");
+    chatInstance.messages.splice(
+      0,
+      chatInstance.messages.length,
+      ...(typeof messages === "function"
+        ? messages(chatInstance.messages)
+        : messages)
+    );
+    refresh();
   };
   const addToolResult = async (args) => {
     return await chatInstance.addToolResult(args);
@@ -264,6 +292,10 @@ function useAgentChat(options) {
     );
   };
   const flushActiveStreamToMessages = (activeMsg) => {
+    console.log(
+      "now calling flushActiveStreamToMessages for activeMsg",
+      activeMsg.id
+    );
     setMessages((prevMessages) => {
       const existingIdx = prevMessages.findIndex(
         (m) => m.id === activeMsg.messageId
@@ -405,13 +437,28 @@ function useAgentChat(options) {
       }
   });
   const onAgentMessage = (event) => {
-    if (typeof event.data !== "string") return;
+    if (typeof event.data !== "string") {
+      console.warn(
+        "entering onAgentMessage - but immediately leaving it bc of unexpected event.data",
+        event.data
+      );
+      return;
+    }
     let data;
     try {
       data = JSON.parse(event.data);
     } catch (_error) {
+      console.warn(
+        "leaving onAgentMessage due to JSON parsing error about event.data"
+      );
       return;
     }
+    console.log(
+      "entering onAgentMessage - event.data.type:",
+      data.type,
+      "- full event.data:",
+      data
+    );
     switch (data.type) {
       case MessageType.CF_AGENT_CHAT_CLEAR:
         setMessages([]);
@@ -468,13 +515,19 @@ function useAgentChat(options) {
         );
         break;
       case MessageType.CF_AGENT_USE_CHAT_RESPONSE:
-        if (localRequestIds.value.has(data.id)) return;
+        console.log("CF_AGENT_USE_CHAT_RESPONSE case");
         const isContinuation = data.continuation === true;
         if (!activeStream.value || activeStream.value.id !== data.id) {
+          console.log(
+            "CF_AGENT_USE_CHAT_RESPONSE: entering if (!activeStream.value ... block"
+          );
           let messageId = nanoid();
           let existingParts = [];
           let existingMetadata;
           if (isContinuation) {
+            console.log(
+              "CF_AGENT_USE_CHAT_RESPONSE: entering if (isContinuation) block"
+            );
             const currentMessages = chatMessages.value;
             for (let i = currentMessages.length - 1; i >= 0; i--)
               if (currentMessages[i].role === "assistant") {
@@ -494,7 +547,16 @@ function useAgentChat(options) {
         }
         const activeMsg = activeStream.value;
         const isReplay = data.replay === true;
-        if (data.body?.trim())
+        console.log(
+          "CF_AGENT_USE_CHAT_RESPONSE: activeMsg is now",
+          activeMsg,
+          ", isReplay=",
+          isReplay
+        );
+        if (data.body?.trim()) {
+          console.log(
+            "CF_AGENT_USE_CHAT_RESPONSE: entering if (data.body?.trim()) block"
+          );
           try {
             const chunkData = JSON.parse(data.body);
             const handled = applyChunkToParts(activeMsg.parts, chunkData);
@@ -504,12 +566,16 @@ function useAgentChat(options) {
               onData
             )
               onData(chunkData);
+            if (onChunk) onChunk(chunkData);
             if (
               !handled &&
               (chunkData.type === "start" ||
                 chunkData.type === "finish" ||
                 chunkData.type === "message-metadata")
             ) {
+              console.log(
+                "CF_AGENT_USE_CHAT_RESPONSE: entering if (!handled ... block"
+              );
               if (chunkData.messageId != null && chunkData.type === "start")
                 activeMsg.messageId = chunkData.messageId;
               if (chunkData.messageMetadata != null)
@@ -520,7 +586,17 @@ function useAgentChat(options) {
                     }
                   : { ...chunkData.messageMetadata };
             }
-            if (!isReplay) flushActiveStreamToMessages(activeMsg);
+            if (!isReplay) {
+              console.log(
+                "CF_AGENT_USE_CHAT_RESPONSE: calling flushActiveStreamToMessages w/activeMsg=",
+                activeMsg
+              );
+              flushActiveStreamToMessages(activeMsg);
+            } else
+              console.log(
+                "CF_AGENT_USE_CHAT_RESPONSE: not calling flushActiveStreamToMessages bc isReplay is",
+                isReplay
+              );
           } catch (parseError) {
             console.warn(
               "[useAgentChat] Failed to parse stream chunk:",
@@ -529,6 +605,7 @@ function useAgentChat(options) {
               data.body?.slice(0, 100)
             );
           }
+        }
         if (data.done || data.error) {
           if (isReplay && activeMsg) flushActiveStreamToMessages(activeMsg);
           activeStream.value = null;
@@ -538,8 +615,10 @@ function useAgentChat(options) {
     }
   };
   watchEffect((onCleanup) => {
+    console.log('adding event listener for "message"');
     agent.addEventListener("message", onAgentMessage);
     onCleanup(() => {
+      console.log('removing event listener for "message"');
       agent.removeEventListener("message", onAgentMessage);
       activeStream.value = null;
     });

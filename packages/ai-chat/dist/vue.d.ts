@@ -3332,7 +3332,9 @@ declare function useAgentChat<
   State = unknown,
   ChatMessage extends UIMessage = UIMessage
 >(
-  options: UseAgentChatOptions<State, ChatMessage>
+  options: UseAgentChatOptions<State, ChatMessage> & {
+    onChunk?: (chunk: any) => void;
+  }
 ): {
   messages: vue.ComputedRef<ChatMessage[]>;
   status: vue.ComputedRef<ai.ChatStatus>;
