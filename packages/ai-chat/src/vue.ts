@@ -229,6 +229,7 @@ export function useAgentChat<
     prepareSendMessagesRequest,
     ...rest
   } = options;
+  console.log("YES, this is the Vue composable!");
 
   // Emit deprecation warnings
   if (manualToolsRequiringConfirmation) {
