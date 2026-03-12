@@ -1,5 +1,5 @@
 {
-  "name": "@cloudflare/ai-chat",
+  "name": "@cloudflare/ai-chat-vue",
   "version": "0.1.8",
   "description": "Cloudflare Agents (x) AI SDK Chat",
   "keywords": [
