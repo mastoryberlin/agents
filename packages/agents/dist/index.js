@@ -62,8 +62,12 @@ var SqlError = class extends Error {
  * @param metadata Optional metadata about the callable method
  */
 function callable(metadata = {}) {
+  console.log("encountered @callable decorator");
   return function callableDecorator(target, _context) {
-    if (!callableMetadata.has(target)) callableMetadata.set(target, metadata);
+    if (!callableMetadata.has(target)) {
+      console.log("adding callableMetadata for method", target.name);
+      callableMetadata.set(target, metadata);
+    } else console.log("NOT adding callableMetadata for method", target.name);
     return target;
   };
 }

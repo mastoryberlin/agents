@@ -220,12 +220,16 @@ export type SubAgentStub<T extends Agent> = {
  * @param metadata Optional metadata about the callable method
  */
 export function callable(metadata: CallableMetadata = {}) {
+  console.log("encountered @callable decorator");
   return function callableDecorator<This, Args extends unknown[], Return>(
     target: (this: This, ...args: Args) => Return,
     _context: ClassMethodDecoratorContext
   ) {
     if (!callableMetadata.has(target)) {
+      console.log("adding callableMetadata for method", target.name);
       callableMetadata.set(target, metadata);
+    } else {
+      console.log("NOT adding callableMetadata for method", target.name);
     }
 
     return target;

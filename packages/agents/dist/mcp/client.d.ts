@@ -9,7 +9,7 @@ import {
   R as MCPOAuthCallbackResult,
   V as getNamespacedData,
   z as MCPServerOptions
-} from "../index-One1s4vh.js";
+} from "../index-DGQt3oNG.js";
 export {
   MCPClientManager,
   MCPClientManagerOptions,

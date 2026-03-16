@@ -1,4 +1,4 @@
-import { r as Agent } from "../index-One1s4vh.js";
+import { r as Agent } from "../index-DGQt3oNG.js";
 //#region src/experimental/forever.d.ts
 type FiberState = {
   id: string;

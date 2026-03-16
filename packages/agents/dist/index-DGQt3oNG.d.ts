@@ -707,7 +707,7 @@ declare class MCPClientConnection {
    */
   getTransport(
     transportType: BaseTransportType
-  ): RPCClientTransport | SSEClientTransport | StreamableHTTPClientTransport;
+  ): StreamableHTTPClientTransport | SSEClientTransport | RPCClientTransport;
   private tryConnect;
   private _capabilityErrorHandler;
 }
@@ -2837,4 +2837,4 @@ export {
   Schedule as y,
   MCPServerOptions as z
 };
-//# sourceMappingURL=index-One1s4vh.d.ts.map
+//# sourceMappingURL=index-DGQt3oNG.d.ts.map

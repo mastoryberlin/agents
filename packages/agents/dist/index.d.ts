@@ -34,7 +34,7 @@ import {
   w as SubAgentStub,
   x as StateUpdateMessage,
   y as Schedule
-} from "./index-One1s4vh.js";
+} from "./index-DGQt3oNG.js";
 import {
   n as AgentsOAuthProvider,
   r as DurableObjectOAuthClientProvider,

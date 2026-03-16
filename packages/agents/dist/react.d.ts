@@ -1,6 +1,6 @@
 import { Method, RPCMethod } from "./serializable.js";
 import { StreamOptions } from "./client.js";
-import { h as MCPServersState, r as Agent } from "./index-One1s4vh.js";
+import { h as MCPServersState, r as Agent } from "./index-DGQt3oNG.js";
 import { PartySocket } from "partysocket";
 import { usePartySocket } from "partysocket/react";
 

@@ -4,5 +4,9 @@
     "src/react-tests/**/*.ts",
     "src/react-tests/**/*.tsx"
   ],
-  "extends": "../../tsconfig.base.json"
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "experimentalDecorators": false,
+    "emitDecoratorMetadata": false
+  }
 }
